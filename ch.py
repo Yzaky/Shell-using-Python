@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 # -*- coding: utf-8 -*-
-## ch.py --- Un shell pour les hélvètes.  par Youssef Zaki & Mamoun Jamal Eddine
+## ch.py --- Un shell pour les hélvètes.
 import os
 import sys
 def main():
