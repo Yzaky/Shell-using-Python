@@ -1,0 +1,72 @@
+\documentclass{article}
+\usepackage[utf8]{inputenc}
+
+\title{Travail pratique \#1 - IFT-2245 - Rapport}
+\author{Youssef Zaki (20052467) \and Mamoun Jamal Eddine (20008354)}
+
+\begin{document}
+
+\maketitle
+
+\section{Objectifs}
+
+Ce TP vise a nous familiarisé avec la programmation système dans un système 
+d'exploitation de style POSIX.
+
+\begin{enumerate}
+\item Parfaire notre connaissance de Python et POSIX.
+\item Lire, trouver et comprendre cette donnée.
+\item Compléter le code fourni en implantant une ligne de commande, similaire 
+à /bin/sh qui sait démarrer des processus, faire des expansions d'arguments,
+rediriger les entrées et sorties de ces processus et connecter ces derniers 
+via des pipes.
+\item Savoir comment écrire un rapport en LaTeX.
+\end{enumerate}
+
+
+\section{Description de l'implantation}
+\section*{I. Lecture des commandes}
+	Pour pouvoir lire les commandes, on a utilisé la fonction input() qui lit ce que l'utilisateur tape sur la ligne de commande même s'il
+	tape un charactère null. Puis on consruit une liste d'arguments qui contient tous les mots de l'input, et a fin d'éliminer les espaces qui peuvent engendrer des erreurs (Par exemple si l'utilisateur tape une commande ou il y a plusieurs espaces entre 2 mots), on a utilisé la fonction filter() pour éviter l'existence des caractères d'espaces dans notre liste d'arguments toujours en gardant la commande, qui est nécessairement au debut de la liste, dans un argument"cmd" séparé.
+
+\section*{II. Expansion d'arguments}
+	A fin de pouvoir gérer des commandes comme "echo *", on a remplacé le caractère '*' par tous les fichiers et les repertoires qui se trouvent dans le repertoire courant dans notre string en utilisant la fonction listdir(). Notez bien que on n'a pas pris en compte les expressions réguliers. Donc, cette méthode ne fonctionne pas si on veut lister les fichiers dans le repertoire courant qui se termine par .py par exemple (echo *.py). On avait seulement traiter les cas où l'usage de '*' dans la commande sont pour lister les fichiers dans le repertoire courant.
+
+\section*{III. Redirections}
+	Tout d'abord, on a travaillé avec la fonction copyfile(source, destination) pour copier un fichier, cette méthode marchait comme on a voulu mais, le problème c'est qu'on ne peut pas traiter des commandes comme (echo test \textgreater file). Ou encore, si on a un fichier d'input et pas de output(stdin,stdout) ou le contraire. Donc, il fallait chercher une autre méthode pour ajouter la fonctionalité de la redirection a fin de pouvoir créer un fichier qui n'existe pas encore, ou bien écrire dans un fichier directement sans avoir un stdin dans la ligne de commande. 
+	Premièrement, a fin de détecter le nom de fichier input et celui de output, il fallait supposer deux cas:
+\begin{enumerate}
+\item que le nom du fichier input est collé avec le \textless ou encore le nom du fichier output est collé avec le \textgreater.
+\item qu'il y a un/des espace(s) entre le signe de redirection et le nom des fichiers.
+\end{enumerate}
+	Pour résoudre ces deux cas, on a déclaré un iterateur pour la liste des arguments qui sert a parcourir la liste pour détecter les signes de redirection a fin de l'éliminer de la liste et aussi déterminer les noms de fichiers, puis encore pour résoudre les deux cas mentionnés, on a:
+\begin{enumerate}
+\item parcouru la liste en prenant chaque élément pour vérifier si l'élément commence par \textgreater \space  ou  \textless. Si on détecte un tel cas, on construit deux strings "Source" et "Destination" qui vont prendre le reste de l'élément en éliminant le premier caractère.
+\item parcouru la liste en prenant chaque élément pour vérifier si l'élément est déjà un signe de redirection. Si c'est le cas, on assigne aux strings "Source" et "Destination" les valeurs qui suivent à travers la methode next().
+\item enfin, consruit une autre liste d'arguments qui ne contient pas ni les signes de redirection, ni les noms des fichiers. Sinon, on aura 2 sortes d'erreurs:- le premier c'est que la commande va prendre les signes comme arguments ce qui va engendrer une erreur comme "\textless:Not Repository " ou "\textgreater:Not found", ou bien une erreur que le input soit le output (Par exemple, la commande "cat \textless \space test \textgreater \space toto" va construire une liste qui contient ['cat','\textless','test','\textgreater','toto'] et on assigne en même temps test au stdin et toto au stdout. Donc à la fin le system voit "cat test toto \textless test \textgreater toto).
+\end{enumerate}
+	Enfin, pour le fichier input, on vérifie qu'il existe par la methode path.exist(Source). Si le fichier exist, on l'ouvre avec os.open() dans le mode "Read Only". Sinon, on affiche une erreur que le fichier n'existe pas. Ensuite, on crée le fichier output s'il n'existe pas avec os.open() dans le mode "Create" ou "Write Only" s'il existe.
+
+	*Notez bien qu'on n'a pas pris en compte le stderr vu que ce n'était pas demandé.
+
+\section*{IV: Pipes}
+	Cette partie a pris beaucoup de temps pour coder même si les pipes semblent facile à comprendre. Premièrement, on a travaillé un peu sur comment découper une ligne de commande lors la détection d'une pipeline en deux. Puis comment extraire les arguments et les commandes de chaque sous-lignes.
+	Puis en faisaint une boucle, on a pu détecter plusieurs arguments pour plusieurs commandes si jamais on a plusieures pipelines dans le input de l'utilisateur.
+
+	Pour comprendre mieux la fonctionalité des processus de pipeline, les fonctions et comment passer le resultat d'un processus child au parent, j'ai utilisé ces ressources:
+\begin{enumerate}
+	\item {http://www.myelin.co.nz/post/2003/3/13/}
+	\item {http://stackoverflow.com/questions/871447/python-program-using-os-pipe-and-os-fork-issue}
+\end{enumerate}
+
+\section*{V: Lancement de processus}
+	On a utilisé la fonction fork() qui crée le processus courant puis on appel la fonction execvp(commande, liste d'arguments) pour l'executer.
+	Aussi pour les redirections, on a utilisé dup2() pour dupliquer le fichier source.\newline
+	(https://www.tutorialspoint.com/python/os\_dup2.htm)
+
+\section*{VI: Bugs}
+	Vu que c'est la première fois qu'on utilise Python pour coder, on avait eu beaucoup de bugs de type syntaxique. 
+	Pour débouger notre code, on s'est servi de fonction print() a fin de bien construire nos listes.\newline
+
+Enfin, j'ai fait un cours de pratique d'UNIX dans une autre université en France ce qui m'a beaucoup aider dans ce TP et qui a aussi facilité la comprehension des commandes et comment les processus fonctionnent. Donc les types de bugs qu'on a eu étaient à cause de la manque d'experience avec Python.
+\end{document}
